@@ -6,9 +6,9 @@
 #define WIFI_SSID "HEREDIA"
 #define WIFI_PASS "3208035673"
 
-#define WS_HOST ""
+#define WS_HOST "j5uqc85rs3.execute-api.us-west-1.amazonaws.com"
 #define WS_PORT 443
-#define WS_URL ""
+#define WS_URL "/dev"
 
 #define JSON_DOC_SIZE 2048
 #define MSG_SIZE 256
@@ -29,6 +29,21 @@ void sendErrorMessage(const char *error)
 void sendOkMessage()
 {
   wsClient.sendTXT("{\"action\":\"msg\",\"type\":\"status\",\"body\":\"ok\"}");
+}
+
+uint8_t toMode(const char *val)
+{
+  if (strcmp(val, "output") == 0)
+  {
+    return OUTPUT;
+  }
+
+  if (strcmp(val, "input_pullup") == 0)
+  {
+    return INPUT_PULLUP;
+  }
+
+  return INPUT;
 }
 
 void handleMessage(uint8_t *payload)
@@ -108,7 +123,7 @@ void handleMessage(uint8_t *payload)
   return;
 }
 
-void onEvent(WStype type, uint8_t *payload, size_t length)
+void onWSEvent(WStype_t type, uint8_t *payload, size_t length)
 {
   switch (type)
   {
@@ -119,7 +134,10 @@ void onEvent(WStype type, uint8_t *payload, size_t length)
     Serial.println("WS Disconnected");
     break;
   case WStype_TEXT:
-    Serial.println("WS Message: %s\n", payload);
+    Serial.printf("WS Message: %s\n", payload);
+
+    handleMessage(payload);
+
     break;
   }
 }
@@ -136,7 +154,7 @@ void awaitWifiConnection()
 void connectWebSocket()
 {
   wsClient.beginSSL(WS_HOST, WS_PORT, WS_URL, "", "wss");
-  wsClient.onEvent(WS_HOST, WS_PORT, WS_URL, "", "wss");
+  wsClient.onEvent(onWSEvent);
 }
 
 void setup()
@@ -155,6 +173,9 @@ void loop()
 {
   delay(1000);
   Serial.println("looping...");
-  digitalWrite(LED_BUILTIN, WiFi.status() == WL_CONNECTED);
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    digitalWrite(LED_BUILTIN, true);
+  }
   delay(1000);
 }
